@@ -328,50 +328,93 @@ toggle.addEventListener("click", () => {
   toggle.innerText = abierto ? "Ocultar" : toggle.dataset.texto;
 });
 
+
 async function cargar() {
   loader.classList.remove("hidden");
 
-  const fuelSel = fuel.value;
-  const litrosSel = parseFloat(vehiculo.value);
+  try {
+    const fuelSel = fuel.value;
+    const litrosSel = parseFloat(vehiculo.value);
 
-  const res = await fetch(URL);
-  const data = await res.json();
+    // 📅 clave de hoy
+    const hoy = new Date();
+    const key = `datos_${hoy.getFullYear()}${String(hoy.getMonth()+1).padStart(2,"0")}${String(hoy.getDate()).padStart(2,"0")}`;
 
-  let lista = data.ListaEESSPrecio
-    .filter(e => cpSeleccionados.includes(e["C.P."]))
-    .map(e => limpiar(e, fuelSel))
-    .filter(e => e);
+    // 📅 clave de ayer (para limpiar)
+    const ayer = new Date(hoy);
+    ayer.setDate(hoy.getDate() - 1);
+    const keyAyer = `datos_${ayer.getFullYear()}${String(ayer.getMonth()+1).padStart(2,"0")}${String(ayer.getDate()).padStart(2,"0")}`;
 
-  lista.sort((a,b)=>a.precio-b.precio);
+    let data;
 
-  const min = lista[0].precio;
-  const max = lista[lista.length-1].precio;
-  const media = lista.reduce((a,b)=>a+b.precio,0)/lista.length;
-  const ahorro = (max-min)*litrosSel;
-  const diferencia = max - min;
+    // 🔎 intentar cache
+    const cache = localStorage.getItem(key);
 
-  resumen.innerHTML = `
-    <strong>${media.toFixed(3)} €/L media<br>
-	Diferencia: ${diferencia.toFixed(3)} €/L<br>
-    Ahorro máximo (vs más cara): ${ahorro.toFixed(2)}</strong> €
-  `;
+    if (cache) {
+      console.log("USANDO CACHE LOCAL");
+      data = JSON.parse(cache);
+    } else {
+      console.log("FETCH API");
 
-  const topBaratas = lista.slice(0,3);
-  const topCaras = lista.slice(-3).reverse();
-  const resto = lista.slice(3,-3);
+      const res = await fetch(URL);
+      data = await res.json();
+	  
+	  console.log(data);
 
-  baratas.innerHTML = topBaratas.map(e=>card(e,false)).join("");
-  caras.innerHTML = topCaras.map(e=>card(e,true)).join("");
+      // guardar cache
+      localStorage.setItem(key, JSON.stringify(data));
 
-  if (resto.length>0) {
-    toggle.classList.remove("hidden");
-    toggle.dataset.texto = `Ver más (${resto.length})`;
-    toggle.innerText = toggle.dataset.texto;
-    todas.innerHTML = resto.map(e=>card(e,false)).join("");
+      // limpiar día anterior
+      localStorage.removeItem(keyAyer);
+    }
+
+    // 🔄 procesado
+    let lista = data.ListaEESSPrecio
+      .filter(e => cpSeleccionados.includes(e["C.P."]))
+      .map(e => limpiar(e, fuelSel))
+      .filter(e => e);
+
+    if (!lista.length) {
+      resumen.innerText = "Sin datos";
+      loader.classList.add("hidden");
+      return;
+    }
+
+    lista.sort((a,b)=>a.precio-b.precio);
+
+    const min = lista[0].precio;
+    const max = lista[lista.length-1].precio;
+    const media = lista.reduce((a,b)=>a+b.precio,0)/lista.length;
+    const ahorro = (max-min)*litrosSel;
+    const diferencia = max - min;
+
+    resumen.innerHTML = `<strong>${media.toFixed(3)} €/L media<br>Diferencia: ${diferencia.toFixed(3)} €/L<br>Ahorro máximo (vs más cara): ${ahorro.toFixed(2)} €</strong>`;
+
+    const topBaratas = lista.slice(0,3);
+    const topCaras = lista.slice(-3).reverse();
+    const resto = lista.slice(3,-3);
+
+    baratas.innerHTML = topBaratas.map(e=>card(e,false)).join("");
+    caras.innerHTML = topCaras.map(e=>card(e,true)).join("");
+
+    if (resto.length > 0) {
+      toggle.classList.remove("hidden");
+      toggle.dataset.texto = `Ver más (${resto.length})`;
+      toggle.innerText = toggle.dataset.texto;
+      todas.innerHTML = resto.map(e=>card(e,false)).join("");
+    } else {
+      toggle.classList.add("hidden");
+      todas.classList.add("hidden");
+    }
+
+  } catch (err) {
+    console.error(err);
+    resumen.innerText = "Error cargando datos";
   }
 
   loader.classList.add("hidden");
 }
+
 
 function card(e, caro) {
   return `<div class="card">
