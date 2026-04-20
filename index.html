@@ -351,9 +351,9 @@ async function cargar() {
   const diferencia = max - min;
 
   resumen.innerHTML = `
-    <strong>${media.toFixed(3)} €/L media</strong><br>
+    <strong>${media.toFixed(3)} €/L media<br>
 	Diferencia: ${diferencia.toFixed(3)} €/L<br>
-    Ahorro máximo (vs más cara): ${ahorro.toFixed(2)} €
+    Ahorro máximo (vs más cara): ${ahorro.toFixed(2)}</strong> €
   `;
 
   const topBaratas = lista.slice(0,3);
