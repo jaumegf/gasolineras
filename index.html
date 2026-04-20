@@ -19,6 +19,17 @@
   color: var(--text);
 }
 
+.gas-app .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.gas-app .header button {
+  padding: 6px 10px;
+}
+
 .gas-app h2, .gas-app h3 {
   color: var(--text);
 }
@@ -219,8 +230,11 @@
   <div class="container">
 
     <div id="loader" class="loader hidden">⏳</div>
-
-    <h2>⛽ Gasolineras Castellón</h2>
+	
+	<div class="header">
+		<h2>⛽ Gasolineras Castellón</h2>
+		<button id="refreshBtn" class="toggle">🔄</button>		
+	</div>
 
     <div class="controls">
       <div class="field">
@@ -303,7 +317,18 @@ function initCPFilters() {
       cargar();
     });
   });
+  
+  refreshBtn.addEventListener("click", async () => {
+		  refreshBtn.disabled = true;
+		  refreshBtn.innerText = "Actualizando...";
+
+		  await cargar(true);
+
+		  refreshBtn.disabled = false;
+		  refreshBtn.innerText = "🔄 Actualizar datos";
+	});
 }
+
 
 fuel.addEventListener("change", onChange);
 vehiculo.addEventListener("change", onChange);
@@ -336,7 +361,7 @@ toggle.addEventListener("click", () => {
 });
 
 
-async function cargar() {
+async function cargar(forceRefresh = false) {
   loader.classList.remove("hidden");
 
   try {
@@ -345,7 +370,10 @@ async function cargar() {
 
     console.log("FETCH API VERCEL");
 
-    const res = await fetch("/api/gasolineras");
+    const url = forceRefresh
+				  ? "/api/gasolineras?refresh=true"
+				  : "/api/gasolineras";
+	const res = await fetch(url);
     const json = await res.json();
 
     // adaptar a tu estructura actual
