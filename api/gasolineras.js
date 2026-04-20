@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   if (!forceRefresh) {
     res.setHeader(
       "Cache-Control",
-      "s-maxage=86400, stale-while-revalidate"
+      "s-maxage=43200, stale-while-revalidate"
     );
   }
 
