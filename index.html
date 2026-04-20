@@ -343,48 +343,14 @@ async function cargar() {
     const fuelSel = fuel.value;
     const litrosSel = parseFloat(vehiculo.value);
 
-    // 📅 claves
-    const hoy = new Date();
-    const key = `datos_${hoy.getFullYear()}${String(hoy.getMonth()+1).padStart(2,"0")}${String(hoy.getDate()).padStart(2,"0")}`;
+    console.log("FETCH API VERCEL");
 
-    const ayer = new Date(hoy);
-    ayer.setDate(hoy.getDate() - 1);
-    const keyAyer = `datos_${ayer.getFullYear()}${String(ayer.getMonth()+1).padStart(2,"0")}${String(ayer.getDate()).padStart(2,"0")}`;
+    const res = await fetch("/api/gasolineras");
+    const json = await res.json();
 
-    let data;
-    let fechaActualizacion;
-
-    const cache = localStorage.getItem(key);
-
-    if (cache) {
-      console.log("USANDO CACHE LOCAL");
-
-      const parsed = JSON.parse(cache);
-      data = parsed.data;
-      fechaActualizacion = new Date(parsed.fecha);
-
-    } else {
-      console.log("FETCH API");
-
-      const res = await fetch(URL);
-      const json = await res.json();
-
-      // 🔥 FILTRADO PARA EVITAR QUOTA
-      const filtrado = json.ListaEESSPrecio
-        .filter(e => TODOS_CP.includes(e["C.P."]));
-
-      data = { ListaEESSPrecio: filtrado };
-      fechaActualizacion = new Date();
-
-      // guardar reducido
-      localStorage.setItem(key, JSON.stringify({
-        fecha: fechaActualizacion.toISOString(),
-        data: data
-      }));
-
-      // limpiar día anterior
-      localStorage.removeItem(keyAyer);
-    }
+    // adaptar a tu estructura actual
+    const data = { ListaEESSPrecio: json.estaciones };
+    const fechaActualizacion = new Date(json.fecha);
 
     // 🔄 procesado
     let lista = data.ListaEESSPrecio
