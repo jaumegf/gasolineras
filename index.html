@@ -143,6 +143,66 @@
     flex-direction: column;
   }
 }
+
+/* MODO OSCURO AUTOMÁTICO */
+@media (prefers-color-scheme: dark) {
+  .gas-app {
+    --card: #111827;
+    --accent: #22c55e;
+    --accent-soft: #4ade80;
+    --text: #e5e7eb;
+    --muted: #9ca3af;
+    --danger: #ef4444;
+    --border: #1f2937;
+  }
+
+  /* fondo tarjetas */
+  .gas-app .card {
+    background: var(--card);
+    border-color: var(--border);
+  }
+
+  /* selects */
+  .gas-app select {
+    background: var(--card);
+    color: var(--text);
+    border-color: var(--border);
+  }
+
+  /* chips */
+  .gas-app .chip {
+    background: #111827;
+    border-color: var(--border);
+    color: var(--text);
+  }
+
+  .gas-app .chip.active {
+    background: var(--accent);
+    color: #022c22;
+  }
+
+  /* resumen */
+  .gas-app .resumen {
+    background: #111827;
+    border-color: var(--border);
+  }
+
+  /* botón */
+  .gas-app .toggle {
+    background: #111827;
+    border-color: var(--border);
+    color: var(--text);
+  }
+
+  .gas-app .toggle:hover {
+    background: #1f2937;
+  }
+
+  /* loader */
+  .gas-app .loader {
+    background: rgba(17, 24, 39, 0.7);
+  }
+}
 </style>
 </head>
 
@@ -167,13 +227,13 @@
 
       <div class="field">
         <label>Vehículo</label>
-        <select id="vehiculo">
-          <option value="40">Utilitario</option>
-          <option value="50">Compacto</option>
-          <option value="60">Berlina</option>
-          <option value="65">SUV</option>
-          <option value="80">Furgoneta</option>
-        </select>
+		<select id="vehiculo">
+		  <option value="40">Utilitario (40L)</option>
+		  <option value="50" selected>Compacto (50L)</option>
+		  <option value="60">Berlina (60L)</option>
+		  <option value="65">SUV (65L)</option>
+		  <option value="80">Furgoneta (80L)</option>
+		</select>
       </div>
 
       <div class="field">
@@ -288,10 +348,12 @@ async function cargar() {
   const max = lista[lista.length-1].precio;
   const media = lista.reduce((a,b)=>a+b.precio,0)/lista.length;
   const ahorro = (max-min)*litrosSel;
+  const diferencia = max - min;
 
   resumen.innerHTML = `
     <strong>${media.toFixed(3)} €/L media</strong><br>
-    Ahorro: ${ahorro.toFixed(2)} €
+	Diferencia: ${diferencia.toFixed(3)} €/L<br>
+    Ahorro máximo (vs más cara): ${ahorro.toFixed(2)} €
   `;
 
   const topBaratas = lista.slice(0,3);
