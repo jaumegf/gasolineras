@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gasolineras Castellón</title>
+
+<style>
+.gas-app {
+  --card: #ffffff;
+  --accent: #16a34a;
+  --accent-soft: #22c55e;
+  --text: #111827;
+  --muted: #4b5563;
+  --danger: #dc2626;
+  --border: #e5e7eb;
+
+  font-family: system-ui, -apple-system, sans-serif;
+  color: var(--text);
+}
+
+.gas-app h2, .gas-app h3 {
+  color: var(--text);
+}
+
+.gas-app .container {
+  max-width: 900px;
+  position: relative;
+}
+
+/* CONTROLES */
+.gas-app .controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.gas-app .field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 140px;
+}
+
+.gas-app label {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.gas-app select {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 8px;
+  border-radius: 8px;
+}
+
+/* CHIPS */
+.gas-app .cp-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.gas-app .chip {
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  background: #fff;
+}
+
+.gas-app .chip.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+/* RESUMEN */
+.gas-app .resumen {
+  background: #f9fafb;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.gas-app .resumen strong {
+  font-size: 1.2rem;
+  color: var(--accent);
+}
+
+/* LISTAS */
+.gas-app .lista {
+  display: grid;
+  gap: 10px;
+}
+
+.gas-app .card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+}
+
+.gas-app .precio {
+  font-weight: bold;
+  color: var(--accent);
+}
+
+.gas-app .precio.caro {
+  color: var(--danger);
+}
+
+/* BOTÓN */
+.gas-app .toggle {
+  border: 1px solid var(--border);
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin: 10px 0;
+}
+
+/* LOADER */
+.gas-app .loader {
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gas-app .hidden {
+  display: none;
+}
+
+/* MOBILE */
+@media (max-width:600px) {
+  .gas-app .controls {
+    flex-direction: column;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="gas-app">
+  <div class="container">
+
+    <div id="loader" class="loader hidden">⏳</div>
+
+    <h2>⛽ Gasolineras Castellón</h2>
+
+    <div class="controls">
+      <div class="field">
+        <label>Combustible</label>
+        <select id="fuel">
+          <option value="Precio Gasoleo A">Diésel</option>
+          <option value="Precio Gasolina 95 E5">Gasolina 95</option>
+          <option value="Precio Gasolina 98 E5">Gasolina 98</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Vehículo</label>
+        <select id="vehiculo">
+          <option value="40">Utilitario</option>
+          <option value="50">Compacto</option>
+          <option value="60">Berlina</option>
+          <option value="65">SUV</option>
+          <option value="80">Furgoneta</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Zonas</label>
+        <div id="cpFilters" class="cp-filters"></div>
+      </div>
+    </div>
+
+    <div id="resumen" class="resumen"></div>
+
+    <h3>Más baratas</h3>
+    <div id="baratas" class="lista"></div>
+
+    <button id="toggle" class="toggle hidden"></button>
+    <div id="todas" class="lista hidden"></div>
+
+    <h3>Más caras</h3>
+    <div id="caras" class="lista"></div>
+
+  </div>
+</div>
+
+<script>
+const TODOS_CP = ["12001","12002","12003","12004","12005","12006","12100"];
+const URL = "https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/";
+
+let cpSeleccionados = [];
+
+const parsePrecio = p => parseFloat(p.replace(",", "."));
+
+function cargarConfig() {
+  fuel.value = localStorage.getItem("fuel") || "Precio Gasoleo A";
+  vehiculo.value = localStorage.getItem("vehiculo") || "50";
+}
+
+function initCPFilters() {
+  const guardados = localStorage.getItem("cp");
+  cpSeleccionados = guardados ? JSON.parse(guardados) : [...TODOS_CP];
+
+  cpFilters.innerHTML = TODOS_CP.map(cp => `
+    <div class="chip ${cpSeleccionados.includes(cp) ? "active" : ""}" data-cp="${cp}">
+      ${cp === "12100" ? "Grao" : cp}
+    </div>
+  `).join("");
+
+  document.querySelectorAll(".chip").forEach(el => {
+    el.addEventListener("click", () => {
+      const cp = el.dataset.cp;
+
+      if (cpSeleccionados.includes(cp)) {
+        if (cpSeleccionados.length === 1) return;
+        cpSeleccionados = cpSeleccionados.filter(c => c !== cp);
+        el.classList.remove("active");
+      } else {
+        cpSeleccionados.push(cp);
+        el.classList.add("active");
+      }
+
+      localStorage.setItem("cp", JSON.stringify(cpSeleccionados));
+      cargar();
+    });
+  });
+}
+
+fuel.addEventListener("change", onChange);
+vehiculo.addEventListener("change", onChange);
+
+function onChange() {
+  localStorage.setItem("fuel", fuel.value);
+  localStorage.setItem("vehiculo", vehiculo.value);
+  cargar();
+}
+
+function limpiar(e, fuel) {
+  if (!e[fuel]) return null;
+  const precio = parsePrecio(e[fuel]);
+  if (isNaN(precio)) return null;
+
+  return {
+    nombre: e["Rótulo"],
+    direccion: e["Dirección"],
+    cp: e["C.P."],
+    precio
+  };
+}
+
+let abierto = false;
+
+toggle.addEventListener("click", () => {
+  abierto = !abierto;
+  todas.classList.toggle("hidden");
+  toggle.innerText = abierto ? "Ocultar" : toggle.dataset.texto;
+});
+
+async function cargar() {
+  loader.classList.remove("hidden");
+
+  const fuelSel = fuel.value;
+  const litrosSel = parseFloat(vehiculo.value);
+
+  const res = await fetch(URL);
+  const data = await res.json();
+
+  let lista = data.ListaEESSPrecio
+    .filter(e => cpSeleccionados.includes(e["C.P."]))
+    .map(e => limpiar(e, fuelSel))
+    .filter(e => e);
+
+  lista.sort((a,b)=>a.precio-b.precio);
+
+  const min = lista[0].precio;
+  const max = lista[lista.length-1].precio;
+  const media = lista.reduce((a,b)=>a+b.precio,0)/lista.length;
+  const ahorro = (max-min)*litrosSel;
+
+  resumen.innerHTML = `
+    <strong>${media.toFixed(3)} €/L media</strong><br>
+    Ahorro: ${ahorro.toFixed(2)} €
+  `;
+
+  const topBaratas = lista.slice(0,3);
+  const topCaras = lista.slice(-3).reverse();
+  const resto = lista.slice(3,-3);
+
+  baratas.innerHTML = topBaratas.map(e=>card(e,false)).join("");
+  caras.innerHTML = topCaras.map(e=>card(e,true)).join("");
+
+  if (resto.length>0) {
+    toggle.classList.remove("hidden");
+    toggle.dataset.texto = `Ver más (${resto.length})`;
+    toggle.innerText = toggle.dataset.texto;
+    todas.innerHTML = resto.map(e=>card(e,false)).join("");
+  }
+
+  loader.classList.add("hidden");
+}
+
+function card(e, caro) {
+  return `<div class="card">
+    <div class="precio ${caro?"caro":""}">
+      ${e.precio.toFixed(3)} €/L
+    </div>
+    <b>${e.nombre}</b><br>
+    ${e.direccion}
+  </div>`;
+}
+
+cargarConfig();
+initCPFilters();
+cargar();
+</script>
+
+</body>
+</html>
