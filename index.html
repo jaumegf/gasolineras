@@ -336,33 +336,44 @@ async function cargar() {
     const fuelSel = fuel.value;
     const litrosSel = parseFloat(vehiculo.value);
 
-    // 📅 clave de hoy
+    // 📅 claves
     const hoy = new Date();
     const key = `datos_${hoy.getFullYear()}${String(hoy.getMonth()+1).padStart(2,"0")}${String(hoy.getDate()).padStart(2,"0")}`;
 
-    // 📅 clave de ayer (para limpiar)
     const ayer = new Date(hoy);
     ayer.setDate(hoy.getDate() - 1);
     const keyAyer = `datos_${ayer.getFullYear()}${String(ayer.getMonth()+1).padStart(2,"0")}${String(ayer.getDate()).padStart(2,"0")}`;
 
     let data;
+    let fechaActualizacion;
 
-    // 🔎 intentar cache
     const cache = localStorage.getItem(key);
 
     if (cache) {
       console.log("USANDO CACHE LOCAL");
-      data = JSON.parse(cache);
+
+      const parsed = JSON.parse(cache);
+      data = parsed.data;
+      fechaActualizacion = new Date(parsed.fecha);
+
     } else {
       console.log("FETCH API");
 
       const res = await fetch(URL);
-      data = await res.json();
-	  
-	  console.log(data);
+      const json = await res.json();
 
-      // guardar cache
-      localStorage.setItem(key, JSON.stringify(data));
+      // 🔥 FILTRADO PARA EVITAR QUOTA
+      const filtrado = json.ListaEESSPrecio
+        .filter(e => TODOS_CP.includes(e["C.P."]));
+
+      data = { ListaEESSPrecio: filtrado };
+      fechaActualizacion = new Date();
+
+      // guardar reducido
+      localStorage.setItem(key, JSON.stringify({
+        fecha: fechaActualizacion.toISOString(),
+        data: data
+      }));
 
       // limpiar día anterior
       localStorage.removeItem(keyAyer);
@@ -388,8 +399,22 @@ async function cargar() {
     const ahorro = (max-min)*litrosSel;
     const diferencia = max - min;
 
-    resumen.innerHTML = `<strong>${media.toFixed(3)} €/L media<br>Diferencia: ${diferencia.toFixed(3)} €/L<br>Ahorro máximo (vs más cara): ${ahorro.toFixed(2)} €</strong>`;
+    // 🕒 hora
+    const hora = fechaActualizacion.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
 
+    resumen.innerHTML = `
+      <strong>
+        ${media.toFixed(3)} €/L media<br>
+        Diferencia: ${diferencia.toFixed(3)} €/L<br>
+        Ahorro máximo (vs más cara): ${ahorro.toFixed(2)} €
+      </strong>
+      <span class="meta">Actualizado hoy a las ${hora}</span>
+    `;
+
+    // 📊 listas
     const topBaratas = lista.slice(0,3);
     const topCaras = lista.slice(-3).reverse();
     const resto = lista.slice(3,-3);
@@ -414,6 +439,7 @@ async function cargar() {
 
   loader.classList.add("hidden");
 }
+
 
 
 function card(e, caro) {
