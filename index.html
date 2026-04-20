@@ -320,12 +320,12 @@ function initCPFilters() {
   
   refreshBtn.addEventListener("click", async () => {
 		  refreshBtn.disabled = true;
-		  refreshBtn.innerText = "Actualizando...";
+		  refreshBtn.innerText = "🔄";
 
 		  await cargar(true);
 
 		  refreshBtn.disabled = false;
-		  refreshBtn.innerText = "🔄 Actualizar datos";
+		  refreshBtn.innerText = "🔄";
 	});
 }
 
