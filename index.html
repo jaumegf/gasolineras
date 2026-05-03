@@ -481,6 +481,13 @@ async function cargar(forceRefresh = false) {
       return;
     }
 
+    const precios = lista.map(e => e.precio);
+    const min = Math.min(...precios);
+    const max = Math.max(...precios);
+    const media = precios.reduce((a,b) => a+b, 0) / precios.length;
+    const ahorro = (max - min) * litrosSel;
+    const diferencia = max - min;
+
     if (modoGPS && posGPS) {
       lista.forEach(e => {
         e.dist = (e.lat != null && e.lon != null)
@@ -495,12 +502,6 @@ async function cargar(forceRefresh = false) {
       tituloBaratas.textContent = "Más baratas";
       seccionCaras.classList.remove("hidden");
     }
-
-    const min = lista[0].precio;
-    const max = lista[lista.length-1].precio;
-    const media = lista.reduce((a,b)=>a+b.precio,0)/lista.length;
-    const ahorro = (max-min)*litrosSel;
-    const diferencia = max - min;
 
     // 🕒 hora
     const hora = fechaActualizacion.toLocaleTimeString([], {
@@ -522,14 +523,14 @@ async function cargar(forceRefresh = false) {
     const topCaras = lista.slice(-3).reverse();
     const resto = lista.slice(3,-3);
 
-    baratas.innerHTML = topBaratas.map(e=>card(e,false)).join("");
+    baratas.innerHTML = topBaratas.map(e=>card(e, e.precio > media)).join("");
     caras.innerHTML = topCaras.map(e=>card(e,true)).join("");
 
     if (resto.length > 0) {
       toggle.classList.remove("hidden");
       toggle.dataset.texto = `Ver más (${resto.length})`;
       toggle.innerText = toggle.dataset.texto;
-      todas.innerHTML = resto.map(e=>card(e,false)).join("");
+      todas.innerHTML = resto.map(e=>card(e, e.precio > media)).join("");
     } else {
       toggle.classList.add("hidden");
       todas.classList.add("hidden");
