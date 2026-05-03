@@ -151,6 +151,21 @@
   justify-content: center;
 }
 
+.gas-app .loader-content {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  text-align: center;
+}
+
+.gas-app .loader-hint {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .gas-app .hidden {
   display: none;
 }
@@ -266,7 +281,12 @@
 <div class="gas-app">
   <div class="container">
 
-    <div id="loader" class="loader hidden">⏳</div>
+    <div id="loader" class="loader hidden">
+      <div class="loader-content">
+        <div>⏳ <span id="loaderMsg"></span></div>
+        <div id="loaderHint" class="loader-hint hidden">Los datos se obtienen directamente<br>del Ministerio (~22 segundos)</div>
+      </div>
+    </div>
 	
 	<div class="header">
 		<h2>⛽ Gasolineras Castellón</h2>
@@ -328,6 +348,24 @@ const URL = "https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/Pr
 let cpSeleccionados = [];
 let posGPS = null;
 let modoGPS = false;
+let loadTimer = null;
+
+function startLoader() {
+  loaderMsg.textContent = '';
+  loaderHint.classList.add('hidden');
+  loader.classList.remove('hidden');
+  let s = 0;
+  loadTimer = setInterval(() => {
+    s++;
+    loaderMsg.textContent = `${s}s`;
+    if (s === 3) loaderHint.classList.remove('hidden');
+  }, 1000);
+}
+
+function stopLoader() {
+  clearInterval(loadTimer);
+  loader.classList.add('hidden');
+}
 
 function haversine(lat1, lon1, lat2, lon2) {
   const R = 6371;
@@ -451,7 +489,7 @@ toggle.addEventListener("click", () => {
 
 
 async function cargar(forceRefresh = false) {
-  loader.classList.remove("hidden");
+  startLoader();
 
   try {
     const fuelSel = fuel.value;
@@ -541,7 +579,7 @@ async function cargar(forceRefresh = false) {
     resumen.innerText = "Error cargando datos";
   }
 
-  loader.classList.add("hidden");
+  stopLoader();
 }
 
 
